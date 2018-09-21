@@ -22,10 +22,10 @@ config.get('mqtt', 'url', fallback='http://127.0.0.1:8000') + "/api/method/iot."
 
 redis_srv = config.get('redis', 'url', fallback='redis://127.0.0.1:6379')
 mqtt_host = config.get('mqtt', 'host', fallback='127.0.0.1')
-mqtt_port = config.get('mqtt', 'port', fallback=1883)
+mqtt_port = config.getint('mqtt', 'port', fallback=1883)
 mqtt_user = config.get('mqtt', 'user', fallback='root')
 mqtt_password = config.get('mqtt', 'password', fallback='root')
-mqtt_keepalive = config.get('mqtt', 'keepalive', fallback=60)
+mqtt_keepalive = config.getint('mqtt', 'keepalive', fallback=60)
 
 
 redis_sts = redis.Redis.from_url(redis_srv+"/9") # device status (online or offline)
