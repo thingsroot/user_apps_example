@@ -16,21 +16,22 @@ logging.basicConfig(level=logging.DEBUG,
                 format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
                 datefmt='%a, %d %b %Y %H:%M:%S')
 
+config = ConfigParser()
+config.read('../config.ini')
+
 match_topic = re.compile(r'^([^/]+)/(.+)$')
 match_data_path = re.compile(r'^([^/]+)/(.+)$')
 
-
-
-redis_srv = 'redis://:Pa88word@m.symgrid.com:6379'
-mqtt_host = 'm.symgrid.com'
-mqtt_port = 1883
-mqtt_keepalive = 60
-mqtt_user = 'root'
-mqtt_password = 'root'
-influxdb_host = 'm.symgrid.com'
-influxdb_port = 8086
-influxdb_user = 'root'
-influxdb_passowrd = 'root'
+redis_srv = config.get('redis', 'url', fallback='redis://127.0.0.1:6379')
+mqtt_host = config.get('mqtt', 'host', fallback='127.0.0.1')
+mqtt_port = config.get('mqtt', 'port', fallback=1883)
+mqtt_user = config.get('mqtt', 'user', fallback='root')
+mqtt_password = config.get('mqtt', 'password', fallback='root')
+mqtt_keepalive = config.get('mqtt', 'keepalive', fallback=60)
+influxdb_host = config.get('influxdb', 'host', fallback='127.0.0.1')
+influxdb_port = config.get('influxdb', 'port', fallback=8086)
+influxdb_user = config.get('influxdb', 'username', fallback='root')
+influxdb_passowrd = config.get('influxdb', 'password', fallback='root')
 
 db_worker = Worker('example', influxdb_host, influxdb_port, influxdb_user, influxdb_passowrd)
 

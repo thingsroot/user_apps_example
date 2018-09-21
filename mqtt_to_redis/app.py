@@ -7,6 +7,7 @@ import redis
 import logging
 import zlib
 from collections import deque
+from configparser import ConfigParser
 import paho.mqtt.client as mqtt
 
 
@@ -14,13 +15,17 @@ logging.basicConfig(level=logging.DEBUG,
                 format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
                 datefmt='%a, %d %b %Y %H:%M:%S')
 
+config = ConfigParser()
+config.read('../config.ini')
 
-redis_srv = 'redis://:Pa88word@m.symgrid.com:6379'
-mqtt_host = 'm.symgrid.com'
-mqtt_port = 1883
-mqtt_keepalive = 60
-mqtt_user = 'root'
-mqtt_password = 'root'
+config.get('mqtt', 'url', fallback='http://127.0.0.1:8000') + "/api/method/iot."
+
+redis_srv = config.get('redis', 'url', fallback='redis://127.0.0.1:6379')
+mqtt_host = config.get('mqtt', 'host', fallback='127.0.0.1')
+mqtt_port = config.get('mqtt', 'port', fallback=1883)
+mqtt_user = config.get('mqtt', 'user', fallback='root')
+mqtt_password = config.get('mqtt', 'password', fallback='root')
+mqtt_keepalive = config.get('mqtt', 'keepalive', fallback=60)
 
 
 redis_sts = redis.Redis.from_url(redis_srv+"/9") # device status (online or offline)
