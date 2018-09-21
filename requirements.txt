@@ -1,0 +1,4 @@
+redis
+influxdb
+paho-mqtt
+flask
