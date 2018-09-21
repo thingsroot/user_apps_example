@@ -32,8 +32,9 @@ influxdb_host = config.get('influxdb', 'host', fallback='127.0.0.1')
 influxdb_port = config.getint('influxdb', 'port', fallback=8086)
 influxdb_user = config.get('influxdb', 'username', fallback='root')
 influxdb_passowrd = config.get('influxdb', 'password', fallback='root')
+influxdb_db = config.get('influxdb', 'database', fallback='thingsroot')
 
-db_worker = Worker('example', influxdb_host, influxdb_port, influxdb_user, influxdb_passowrd)
+db_worker = Worker(influxdb_db, influxdb_host, influxdb_port, influxdb_user, influxdb_passowrd)
 
 def get_input_type(val):
 	if isinstance(val, int):
