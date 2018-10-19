@@ -13,8 +13,8 @@ from tsdb.worker import Worker
 
 
 logging.basicConfig(level=logging.DEBUG,
-                format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
-                datefmt='%a, %d %b %Y %H:%M:%S')
+				format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
+				datefmt='%a, %d %b %Y %H:%M:%S')
 
 config = ConfigParser()
 config.read('../config.ini')
@@ -35,6 +35,7 @@ influxdb_passowrd = config.get('influxdb', 'password', fallback='root')
 influxdb_db = config.get('influxdb', 'database', fallback='thingsroot')
 
 db_worker = Worker(influxdb_db, influxdb_host, influxdb_port, influxdb_user, influxdb_passowrd)
+
 
 def get_input_type(val):
 	if isinstance(val, int):
@@ -94,54 +95,59 @@ def on_disconnect(client, userdata, rc):
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
-	g = match_topic.match(msg.topic)
-	if not g:
+	topic_g = match_topic.match(msg.topic)
+	if not topic_g:
 		return
-	g = g.groups()
-	if len(g) < 2:
+	topic_g = topic_g.groups()
+	if len(topic_g) < 2:
 		return
 
-	devid = g[0]
-	topic = g[1]
+	devid = topic_g[0]
+	topic = topic_g[1]
 
 	if topic == 'data':
 		data = json.loads(msg.payload.decode('utf-8'))
 		if not data:
 			logging.warning('Decode DATA JSON Failure: %s/%s\t%s', devid, topic, msg.payload.decode('utf-8'))
 			return
-		g = match_data_path.match(data['input'])
-		if not g:
+		input_match = match_data_path.match(data['input'])
+		if not input_match:
 			return
-		g = g.groups()
-		if g and msg.retain == 0:
-			prop = g[1]
-			value=data['data']
+		input_match = input_match.groups()
+		if input_match and msg.retain == 0:
+			input = input_match[0]
+			prop = input_match[1]
+			dv=data['data']
+			value = dv[1]
 			if prop == "value":
-				t, val = get_input_vt(devid, g[1], value[1])
+				t, val = get_input_vt(devid, input, value)
 				if t:
 					prop = t + "_" + prop
 				value = val
 			else:
 				value = str(value)
 			# logging.debug('[GZ]device: %s\tInput: %s\t Value: %s', g[0], g[1], value)
-			db_worker.append_data(name=g[1], property=prop, device=devid, timestamp=value[1], value=value, quality=value[3])
+			db_worker.append_data(name=input, property=prop, device=devid, timestamp=dv[0], value=value, quality=dv[2])
 		return
 
 	if topic == 'device':
-		data = msg.payload.decode('utf-8') if topic == 'devices' else zlib.decompress(msg.payload).decode('utf-8')
-		logging.debug('%s/%s\t%s', devid, topic, data)
-		db_worker.append_data(name="iot_device", property="cfg", device=devid, timestamp=time.time(), value=data, quality=0)
-		devs = json.loads(data)
-		if not devs:
-			logging.warning('Decode DEVICE_GZ JSON Failure: %s/%s\t%s', devid, topic, data)
+		data = json.loads(msg.payload.decode('utf-8'))
+		if not data:
+			logging.warning('Decode Device JSON Failure: %s/%s\t%s', devid, topic, msg.payload.decode('utf-8'))
 			return
-		make_input_map(devs)
+
+		logging.debug('%s/%s\t%s', devid, topic, data)
+		info = data['info']
+		db_worker.append_data(name="iot_device", property="cfg", device=devid, timestamp=time.time(), value=json.dumps(info), quality=0)
+		make_input_map(info)
 		return
 
 	if topic == 'status':
-		# TODO: Update Quality of All Inputs when gate is offline.
-		#redis_sts.set(devid, msg.payload.decode('utf-8'))
-		data = msg.payload.decode('utf-8')
+		data = json.loads(msg.payload.decode('utf-8'))
+		if not data:
+			logging.warning('Decode Status JSON Failure: %s/%s\t%s', devid, topic, msg.payload.decode('utf-8'))
+			return
+
 		status = data['status']
 		if status == "ONLINE" or status == "OFFLINE":
 			val = status == "ONLINE"
@@ -154,10 +160,10 @@ def on_message(client, userdata, msg):
 			logging.warning('Decode EVENT JSON Failure: %s/%s\t%s', devid, topic, msg.payload.decode('utf-8'))
 			return
 		if msg.retain == 0:
-			devid = data['gate']
-			event = data['event']
-			timestamp = time.time()
-			db_worker.append_event(device=devid, timestamp=timestamp, event=event, quality=0)
+			gate = data['gate']
+			event = json.loads(data['event'])
+			timestamp = event[2] or time.time()
+			db_worker.append_event(device=devid, timestamp=timestamp, event=event[1], quality=0)
 		return
 
 

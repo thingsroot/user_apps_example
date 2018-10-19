@@ -17,10 +17,6 @@ logging.basicConfig(level=logging.DEBUG,
 
 config = ConfigParser()
 config.read('../config.ini')
-
-config.get('mqtt', 'url', fallback='http://127.0.0.1:8000') + "/api/method/iot."
-
-redis_srv = config.get('redis', 'url', fallback='redis://127.0.0.1:6379')
 mqtt_host = config.get('mqtt', 'host', fallback='127.0.0.1')
 mqtt_port = config.getint('mqtt', 'port', fallback=1883)
 mqtt_user = config.get('mqtt', 'user', fallback='root')
@@ -28,15 +24,16 @@ mqtt_password = config.get('mqtt', 'password', fallback='root')
 mqtt_keepalive = config.getint('mqtt', 'keepalive', fallback=60)
 
 
-redis_sts = redis.Redis.from_url(redis_srv+"/9") # device status (online or offline)
-redis_cfg = redis.Redis.from_url(redis_srv+"/10") # device defines
-redis_rel = redis.Redis.from_url(redis_srv+"/11") # device relationship
-redis_rtdb = redis.Redis.from_url(redis_srv+"/12") # device real-time data
+redis_srv_url = config.get('redis', 'url', fallback='redis://127.0.0.1:6379')
+
+redis_sts = redis.Redis.from_url(redis_srv_url + "/9") # device status (online or offline)
+redis_cfg = redis.Redis.from_url(redis_srv_url + "/10") # device defines
+redis_rel = redis.Redis.from_url(redis_srv_url + "/11") # device relationship
+redis_rtdb = redis.Redis.from_url(redis_srv_url + "/12") # device real-time data
 
 ''' Set all data be expired after device offline '''
 redis_offline_expire = 3600 * 24 * 7
 
-data_queue = deque()
 match_topic = re.compile(r'^([^/]+)/(.+)$')
 
 
@@ -108,8 +105,7 @@ def on_message(client, userdata, msg):
 
 	if topic == 'status':
 		gateid = devid
-		data = msg.payload.decode('utf-8')
-		data = json.loads(data)
+		data = json.loads(msg.payload.decode('utf-8'))
 		if not data:
 			logging.warning('Decode JSON Failure: %s/%s\t%s', devid, topic, data)
 			return
@@ -131,7 +127,7 @@ def on_message(client, userdata, msg):
 		return
 
 	if topic == 'event':
-		event = msg.payload.decode('utf-8')
+		data = json.loads(msg.payload.decode('utf-8'))
 		return
 
 
