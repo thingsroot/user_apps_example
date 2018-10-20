@@ -13,17 +13,17 @@ from utils import _dict
 
 logging_format = '%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s'
 logging_datefmt = '%a, %d %b %Y %H:%M:%S'
-logging.basicConfig(level=logging.DEBUG, format=logging_format, datefmt=logging_datefmt)
+logging.basicConfig(level=logging.INFO, format=logging_format, datefmt=logging_datefmt)
 
 config = ConfigParser()
 config.read('../config.ini')
 
 redis_srv_url = config.get('redis', 'url', fallback='redis://127.0.0.1:6379')
 
-redis_sts = redis.Redis.from_url(redis_srv_url + "/9") # device status (online or offline)
-redis_cfg = redis.Redis.from_url(redis_srv_url + "/10") # device defines
-redis_rel = redis.Redis.from_url(redis_srv_url + "/11") # device relationship
-redis_rtdb = redis.Redis.from_url(redis_srv_url + "/12") # device real-time data
+redis_sts = redis.Redis.from_url(redis_srv_url + "/9", decode_responses=True) # device status (online or offline)
+redis_cfg = redis.Redis.from_url(redis_srv_url + "/10", decode_responses=True) # device defines
+redis_rel = redis.Redis.from_url(redis_srv_url + "/11", decode_responses=True) # device relationship
+redis_rtdb = redis.Redis.from_url(redis_srv_url + "/12", decode_responses=True) # device real-time data
 
 
 class MQTTHandler:
@@ -40,7 +40,7 @@ class MQTTHandler:
 		self.server = server
 		self.devices = _dict({})
 		self.device_types = _dict({})
-		self.load_redis_db()
+		# self.load_redis_db()
 		server.start()
 
 	def load_redis_db(self):
@@ -54,7 +54,7 @@ class MQTTHandler:
 				logging.warning('Decode Device Info Failure: %s\t%s', sn, info)
 				continue
 			gate = redis_rel.get('PARENT_{0}'.format(sn))
-			self.device(sn, gate, info)
+			self.device(sn, gate, data)
 
 	def stop(self):
 		self.server.stop()
@@ -134,20 +134,23 @@ class MQTTHandler:
 	def del_device(self, device, gate):
 		dev_node = self.devices.get(device)
 		if dev_node:
-			dev_node.delete(delete_references=True, recursive=True)
+			try:
+				dev_node.delete(delete_references=True, recursive=True)
+			except Exception as ex:
+				logging.exception(ex)
 
 	def add_device(self, dev_type_node, device, gate, inputs):
 		dev_node = self.objects.add_object(self.idx, device, dev_type_node)
 		self.devices[device] = dev_node
 
-		hs = self.redis_rtdb.hgetall(device)
+		hs = redis_rtdb.hgetall(device)
 		for input in inputs:
 			input = _dict(input)
 			s = hs.get(input.name + "/value")
 			if s:
 				val = json.loads(s)
 
-				varid = '%d:' % self.idx + input
+				varid = '%d:' % self.idx + input.name
 				var = dev_node.get_child(varid)
 				if var:
 					datavalue = ua.DataValue(val[1])

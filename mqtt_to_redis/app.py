@@ -26,10 +26,10 @@ mqtt_keepalive = config.getint('mqtt', 'keepalive', fallback=60)
 
 redis_srv_url = config.get('redis', 'url', fallback='redis://127.0.0.1:6379')
 
-redis_sts = redis.Redis.from_url(redis_srv_url + "/9") # device status (online or offline)
-redis_cfg = redis.Redis.from_url(redis_srv_url + "/10") # device defines
-redis_rel = redis.Redis.from_url(redis_srv_url + "/11") # device relationship
-redis_rtdb = redis.Redis.from_url(redis_srv_url + "/12") # device real-time data
+redis_sts = redis.Redis.from_url(redis_srv_url + "/9", decode_responses=True) # device status (online or offline)
+redis_cfg = redis.Redis.from_url(redis_srv_url + "/10", decode_responses=True) # device defines
+redis_rel = redis.Redis.from_url(redis_srv_url + "/11", decode_responses=True) # device relationship
+redis_rtdb = redis.Redis.from_url(redis_srv_url + "/12", decode_responses=True) # device real-time data
 
 ''' Set all data be expired after device offline '''
 redis_offline_expire = 3600 * 24 * 7
