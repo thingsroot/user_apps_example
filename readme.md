@@ -9,7 +9,7 @@
 
 1. Install supervisor, python3, python3-pip
 2. Checkout code to /usr/iot_user_apps
-3. Install required python3 modules by: pip3 -r requirement.txt
+3. Install required python3 modules by: pip3 install -r requirements.txt
 4. cd /etc/supervisior/conf.d && ln -s /usr/iot_user_apps/supervisior.conf ./iot_user_apps.conf
 5. Reload supervisor by: sudo supervisorctrl reload
 
