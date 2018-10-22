@@ -16,6 +16,6 @@
 ### Make it run
 
 1. Register your account in ThingsRoot Cloud
-2. Create user application in ThingsRoot Cloud
+2. Create user application in IOT Hub
 
  
