@@ -9,6 +9,7 @@ from opcua import ua, uamethod, Server
 from opcua.common.callback import CallbackType
 from configparser import ConfigParser
 from ioe.mqtt_client import MQTTClient
+from ioe.user_api import UserApi
 from utils import _dict
 
 logging_format = '%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s'
@@ -25,10 +26,30 @@ redis_cfg = redis.Redis.from_url(redis_srv_url + "/10", decode_responses=True) #
 redis_rel = redis.Redis.from_url(redis_srv_url + "/11", decode_responses=True) # device relationship
 redis_rtdb = redis.Redis.from_url(redis_srv_url + "/12", decode_responses=True) # device real-time data
 
+cloud_user_api = UserApi(config)
+
+
+class OutputHandler:
+	def __init__(self, device):
+		self.device = device
+
+	def datachange_notification(self, node, val, data):
+		# Skip our own datachange events.
+		if val is None:
+			return
+
+		_node_bname = node.get_browse_name()
+		logging.info('**** Device %s output %s %s', self.device, _node_bname, repr(val))
+		r, action_id = cloud_user_api.send_output(self.device, _node_bname.Name, 'value', val)
+		if not r:
+			logging.warning('**** Send output failured %s', action_id)
+		# TODO: Watching result
+
 
 class MQTTHandler:
 	def __init__(self):
 		self.devices = _dict({})
+		self.devices_sub_handle = _dict({})
 		self.device_types = _dict({})
 
 	def start(self):
@@ -39,6 +60,7 @@ class MQTTHandler:
 		self.objects = server.get_objects_node()
 		self.server = server
 		self.devices = _dict({})
+		self.devices_sub_handle = _dict({})
 		self.device_types = _dict({})
 		# self.load_redis_db()
 		server.start()
@@ -76,7 +98,9 @@ class MQTTHandler:
 
 		datavalue = ua.DataValue(value)
 		datavalue.SourceTimestamp = datetime.datetime.utcfromtimestamp(timestamp)
-		var.set_value(datavalue)
+		#self.server.set_attribute_value(var.nodeid, datavalue)
+		#var.set_value(datavalue)
+		self.server.iserver.aspace._nodes[var.nodeid].attributes[ua.AttributeIds.Value].value = datavalue
 
 	def device(self, device, gate, info):
 		self.del_device(device, gate)
@@ -87,7 +111,9 @@ class MQTTHandler:
 		dev = self.device_types.get(meta.name)
 		if dev:
 			inputs = info.get('inputs') or []
-			return self.add_device(dev, device, gate, inputs)
+			outputs = info.get('outputs') or []
+			commands = info.get('commands') or []
+			return self.add_device(dev, device, gate, inputs, outputs, commands)
 
 		dev = self.objects.add_object_type(self.idx, meta.name)
 
@@ -101,7 +127,7 @@ class MQTTHandler:
 			if output.vt == 'string':
 				idv = ""
 
-			node = dev.add_variable(self.idx, output.name, idv)
+			node = dev.add_variable(self.idx, output.name, None)
 			node.set_modelling_rule(True)
 			node.set_writable(True)
 			output_names.append(output.name)
@@ -116,7 +142,7 @@ class MQTTHandler:
 				if input.vt == 'string':
 					idv = ""
 
-				node = dev.add_variable(self.idx, input.name, idv)
+				node = dev.add_variable(self.idx, input.name, None)
 				node.set_modelling_rule(True)
 				node.set_writable(False)
 
@@ -129,17 +155,23 @@ class MQTTHandler:
 
 		self.device_types[meta.name] = dev
 
-		return self.add_device(dev, device, gate, inputs)
+		return self.add_device(dev, device, gate, inputs, outputs, commands)
 
 	def del_device(self, device, gate):
+		handle = self.devices_sub_handle.get(device)
+		if handle:
+			self.devices_sub_handle.pop(device)
+			handle.delete()
+
 		dev_node = self.devices.get(device)
 		if dev_node:
 			try:
+				self.devices.pop(device)
 				dev_node.delete(delete_references=True, recursive=True)
 			except Exception as ex:
 				logging.exception(ex)
 
-	def add_device(self, dev_type_node, device, gate, inputs):
+	def add_device(self, dev_type_node, device, gate, inputs, outputs, commands):
 		dev_node = self.objects.add_object(self.idx, device, dev_type_node)
 		self.devices[device] = dev_node
 
@@ -155,7 +187,21 @@ class MQTTHandler:
 				if var:
 					datavalue = ua.DataValue(val[1])
 					datavalue.SourceTimestamp = datetime.datetime.utcfromtimestamp(val[0])
-					var.set_value(datavalue)
+					#self.server.set_attribute_value(var.nodeid, datavalue)
+					#var.set_value(datavalue)
+					self.server.iserver.aspace._nodes[var.nodeid].attributes[ua.AttributeIds.Value].value = datavalue
+
+		handle = self.server.create_subscription(500, OutputHandler(device))
+		output_nodes = []
+		for output in outputs:
+			output = _dict(output)
+			varid = '%d:' % self.idx + output.name
+			var = dev_node.get_child(varid)
+			if var:
+				output_nodes.append(var)
+		if len(output_nodes) > 0:
+			handle.subscribe_data_change(output_nodes)
+			self.devices_sub_handle[device] = handle
 		return
 
 	def status(self, device, gate, online):
