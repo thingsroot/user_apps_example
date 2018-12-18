@@ -52,7 +52,7 @@ class MQTTClient:
 		client.subscribe("+/event")
 
 	def on_disconnect(self, client, rc):
-		logging.info("Main MQTT Disconnect with result code " + str(rc))
+		logging.error("Main MQTT Disconnect with result code " + str(rc))
 		assert(client == self.mqtt_client)
 
 	def on_message(self, client, msg):
