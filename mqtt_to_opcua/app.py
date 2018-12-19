@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
-import re
-import os
+import sys
 import json
 import redis
 import logging
@@ -12,9 +11,17 @@ from ioe.mqtt_client import MQTTClient
 from ioe.user_api import UserApi
 from utils import _dict
 
+
+console_out = logging.StreamHandler(sys.stdout)
+console_out.setLevel(logging.DEBUG)
+console_err = logging.StreamHandler(sys.stderr)
+console_err.setLevel(logging.ERROR)
+logging_handlers = [console_out, console_err]
 logging_format = '%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s'
 logging_datefmt = '%a, %d %b %Y %H:%M:%S'
-logging.basicConfig(level=logging.INFO, format=logging_format, datefmt=logging_datefmt)
+## INFO Log Level. or opcua module will append tooooooo much logs
+logging.basicConfig(level=logging.INFO, format=logging_format, datefmt=logging_datefmt, handlers=logging_handlers)
+
 
 config = ConfigParser()
 config.read('../config.ini')

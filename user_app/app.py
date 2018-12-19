@@ -1,14 +1,22 @@
 
 from __future__ import unicode_literals
+import sys
 import logging
 from utils import _dict
 from flask import Flask, request, json
 
 
+console_out = logging.StreamHandler(sys.stdout)
+console_out.setLevel(logging.DEBUG)
+console_err = logging.StreamHandler(sys.stderr)
+console_err.setLevel(logging.ERROR)
+logging_handlers = [console_out, console_err]
+logging_format = '%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s'
+logging_datefmt = '%a, %d %b %Y %H:%M:%S'
+logging.basicConfig(level=logging.DEBUG, format=logging_format, datefmt=logging_datefmt, handlers=logging_handlers)
+
+
 app = Flask(__name__)
-logging.basicConfig(level=logging.DEBUG,
-					format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
-					datefmt='%a, %d %b %Y %H:%M:%S')
 
 
 @app.route("/")
