@@ -48,6 +48,10 @@ def on_connect(client, userdata, flags, rc):
 
 	# Subscribing in on_connect() means that if we lose the connection and
 	# reconnect then subscriptions will be renewed.
+	if rc != 0:
+		return
+
+	logging.info("Main MQTT Subscribe topics")
 	#client.subscribe("$SYS/#")
 	client.subscribe("+/data")
 	client.subscribe("+/device")
