@@ -115,9 +115,9 @@ def on_message(client, userdata, msg):
 	topic = topic_g[1]
 
 	if topic == 'data':
-		data = json.loads(msg.payload.decode('utf-8'))
+		data = json.loads(msg.payload.decode('utf-8', 'surrogatepass'))
 		if not data:
-			logging.warning('Decode DATA JSON Failure: %s/%s\t%s', devid, topic, msg.payload.decode('utf-8'))
+			logging.warning('Decode DATA JSON Failure: %s/%s\t%s', devid, topic, msg.payload.decode('utf-8', 'surrogatepass'))
 			return
 		input_match = match_data_path.match(data['input'])
 		if not input_match:
@@ -140,9 +140,9 @@ def on_message(client, userdata, msg):
 		return
 
 	if topic == 'device':
-		data = json.loads(msg.payload.decode('utf-8'))
+		data = json.loads(msg.payload.decode('utf-8', 'surrogatepass'))
 		if not data:
-			logging.warning('Decode Device JSON Failure: %s/%s\t%s', devid, topic, msg.payload.decode('utf-8'))
+			logging.warning('Decode Device JSON Failure: %s/%s\t%s', devid, topic, msg.payload.decode('utf-8', 'surrogatepass'))
 			return
 
 		logging.debug('%s/%s\t%s', devid, topic, data)
@@ -152,9 +152,9 @@ def on_message(client, userdata, msg):
 		return
 
 	if topic == 'status':
-		data = json.loads(msg.payload.decode('utf-8'))
+		data = json.loads(msg.payload.decode('utf-8', 'surrogatepass'))
 		if not data:
-			logging.warning('Decode Status JSON Failure: %s/%s\t%s', devid, topic, msg.payload.decode('utf-8'))
+			logging.warning('Decode Status JSON Failure: %s/%s\t%s', devid, topic, msg.payload.decode('utf-8', 'surrogatepass'))
 			return
 
 		status = data['status']
@@ -164,9 +164,9 @@ def on_message(client, userdata, msg):
 		return
 
 	if topic == 'event':
-		data = json.loads(msg.payload.decode('utf-8'))
+		data = json.loads(msg.payload.decode('utf-8', 'surrogatepass'))
 		if not data:
-			logging.warning('Decode EVENT JSON Failure: %s/%s\t%s', devid, topic, msg.payload.decode('utf-8'))
+			logging.warning('Decode EVENT JSON Failure: %s/%s\t%s', devid, topic, msg.payload.decode('utf-8', 'surrogatepass'))
 			return
 		if msg.retain == 0:
 			gate = data['gate']

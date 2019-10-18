@@ -78,9 +78,9 @@ def on_message(client, userdata, msg):
 	if topic == 'data':
 		if msg.retain != 0:
 			return
-		payload = json.loads(msg.payload.decode('utf-8'))
+		payload = json.loads(msg.payload.decode('utf-8', 'surrogatepass'))
 		if not payload:
-			logging.warning('Decode DATA JSON Failure: %s/%s\t%s', devid, topic, msg.payload.decode('utf-8'))
+			logging.warning('Decode DATA JSON Failure: %s/%s\t%s', devid, topic, msg.payload.decode('utf-8', 'surrogatepass'))
 			return
 
 		# logging.debug('device: %s\tInput: %s\t Value: %s', g[0], g[1], json.dumps(payload))
@@ -90,7 +90,7 @@ def on_message(client, userdata, msg):
 		return
 
 	if topic == 'device':
-		data = msg.payload.decode('utf-8')
+		data = msg.payload.decode('utf-8', 'surrogatepass')
 		logging.debug('%s/%s\t%s', devid, topic, data)
 		info = json.loads(data)
 		if not info:
@@ -114,7 +114,7 @@ def on_message(client, userdata, msg):
 
 	if topic == 'status':
 		gateid = devid
-		data = json.loads(msg.payload.decode('utf-8'))
+		data = json.loads(msg.payload.decode('utf-8', 'surrogatepass'))
 		if not data:
 			logging.warning('Decode JSON Failure: %s/%s\t%s', devid, topic, data)
 			return
@@ -136,7 +136,7 @@ def on_message(client, userdata, msg):
 		return
 
 	if topic == 'event':
-		data = json.loads(msg.payload.decode('utf-8'))
+		data = json.loads(msg.payload.decode('utf-8', 'surrogatepass'))
 		return
 
 
